@@ -1,11 +1,8 @@
 const { getGatewayBot } = require("./discord/command/GetGatewayBot");
 const { WebsocketClient } = require("./discord/websocket/websocket");
+require('dotenv').config();
 
 const {logger} = require('./util/Logger');
-
-logger.info("Hello");
-logger.debug("HOWDY");
-logger.error("YIKES");
 
 /*
 const httpsConfig = {
