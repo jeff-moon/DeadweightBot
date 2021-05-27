@@ -1,0 +1,16 @@
+{
+  "name": "deadweightbot",
+  "version": "0.0.1",
+  "description": "Deadweight Discord Bot",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "format": "npx prettier --write src",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "ws": "^7.4.6"
+  }
+}
