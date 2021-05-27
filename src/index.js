@@ -1,6 +1,13 @@
 const { getGatewayBot } = require("./discord/command/GetGatewayBot");
 const { WebsocketClient } = require("./discord/websocket/websocket");
 
+const {logger} = require('./util/Logger');
+
+logger.info("Hello");
+logger.debug("HOWDY");
+logger.error("YIKES");
+
+/*
 const httpsConfig = {
     baseUrl: "discordapp.com",
     apiUrl: "/api",
@@ -11,3 +18,4 @@ const httpsConfig = {
     const response = await getGatewayBot(httpsConfig);
     const wsClient = new WebsocketClient(response.url);
 })();
+*/

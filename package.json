@@ -11,6 +11,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "config": "^3.3.6",
+    "winston": "^3.3.3",
     "ws": "^7.4.6"
   }
 }
