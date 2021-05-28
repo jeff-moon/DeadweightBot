@@ -1,3 +1,7 @@
 {
-    "logLevel": "info"
+    "logLevel": "debug",
+    "discord": {
+        "baseUrl": "discordapp.com",
+        "apiUrl": "/api"
+    }
 }
