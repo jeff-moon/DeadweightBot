@@ -15,6 +15,5 @@ const token: string = getToken();
 const client: DiscordClient = new DiscordClient(token);
 
 (async () => {
-    logger.info("THING");
-    //await client.connect();
+    await client.connect();
 })();

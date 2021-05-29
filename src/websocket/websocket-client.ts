@@ -1,6 +1,18 @@
-//const WebSocket = require("ws");
 import WebSocket from 'ws';
-import { Intents, IWebSocketData, IWebSocketHeartbeat, IWebSocketHello, IWebSocketIdentify, Opcodes } from './websocket-types';
+import { DiscordClientConfig } from '../discord-client';
+import { buildHeartbeatRequest } from '../discord/commands/heartbeat';
+import { IHelloResponse } from '../discord/commands/hello';
+import { buildIdentifyRequest } from '../discord/commands/identify';
+import logger from '../logger/logger';
+import {Intents} from './intent';
+import {Opcodes} from './opcode';
+
+/**
+ * Base response for websocket
+ */
+interface IWebSocketData {
+    op: number;
+}
 
 /**
  * WebSocket gateway client for discord
@@ -15,7 +27,7 @@ export class WebSocketClient {
     /**
      * The discord configuration
      */
-    private token: string = "";
+    private config: DiscordClientConfig;
 
     /*
      * Last sequence number received by client
@@ -28,11 +40,18 @@ export class WebSocketClient {
     private heartbeat: NodeJS.Timer | undefined = undefined;
 
     /**
+     * Constructor
+     * @param config The discord config
+     */
+    constructor(config: DiscordClientConfig) {
+        this.config = config;
+    }
+
+    /**
      * Connects the websocket
      * @param config The discord configuration
      */
-    public connect(wsPath: string, token: string): void {
-        this.token = token;
+    public connect(wsPath: string): void {
 
         this.ws = new WebSocket(wsPath);
 
@@ -49,14 +68,13 @@ export class WebSocketClient {
      * Performs the identify step in gateway connection
      */
     private identify(): void {
-        if (!this.ws) {
-            return;
-        }
-
         // TODO dwb-6: dynamic intents
         let intents: number = 0;
         intents |= Intents.Guilds;
         intents |= Intents.GuildMessage;
+        const identify = buildIdentifyRequest(this.config.token, intents, "DeadweightBot");
+
+        /*
 
         const identityOpts: IWebSocketIdentify = {
             op: Opcodes.Identify,
@@ -73,6 +91,7 @@ export class WebSocketClient {
         };
 
         this.ws.send(JSON.stringify(identityOpts));
+        */
     }
 
     /**
@@ -89,10 +108,14 @@ export class WebSocketClient {
 
         switch (dataObj.op) {
             case Opcodes.Hello:
-                const interval = (dataObj as IWebSocketHello).d.heartbeat_interval;
+                const interval = (dataObj as IHelloResponse).d.heartbeat_interval;
                 this.startHeartbeat(interval);
                 this.identify();
                 break;
+            case Opcodes.HeartbeatAck:
+                logger.info("Received heartbeat ack");
+                break;
+                
             default:
                 console.log(`Unknown response: ${JSON.stringify(data)}`);
                 break;
@@ -108,21 +131,10 @@ export class WebSocketClient {
         this.heartbeat = setInterval(this.sendHeartbeat, interval);
     }
 
-    /**
-     * Stops the heartbeat
-     */
-    private stopHeartbeat() {
-        if (this.heartbeat) {
-            clearInterval(this.heartbeat);
-        }
-    }
-
     private sendHeartbeat(): void {
-        const dataObj: IWebSocketHeartbeat = {
-            op: Opcodes.Heartbeat,
-            d: this.s
-        };
-        this.ws?.send(JSON.stringify(dataObj))
+        logger.info("Sending heartbeat");
+        const heartbeat = buildHeartbeatRequest(this.s);
+        this.ws?.send(JSON.stringify(heartbeat));
     }
 }
 

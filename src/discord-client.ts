@@ -1,5 +1,6 @@
 import config from 'config';
-import { GatewayBotRequest } from './discord/requests/gateway-bot';
+import { buildGatewayBotRequest, IGatewayBotResponse } from './discord/commands/gateway-bot';
+import { HttpsClient, HttpsRequestOptions } from './https-client';
 import { WebSocketClient } from './websocket/websocket-client';
 
 export interface DiscordClientConfig {
@@ -16,6 +17,8 @@ export class DiscordClient {
     private config: DiscordClientConfig;
     
     private websocket: WebSocketClient;
+    
+    private https: HttpsClient;
 
     /**
      * Constructor
@@ -28,16 +31,17 @@ export class DiscordClient {
             token: token
         };
 
-        this.websocket = new WebSocketClient();
+        this.websocket = new WebSocketClient(this.config);
+        this.https = new HttpsClient();
     }
 
     /**
      * Connects to the Discord Gateway as a bot
      */
     async connect(): Promise<void> {
-        const gbRequest: GatewayBotRequest = new GatewayBotRequest(this.config);
-        const gbResponse = await gbRequest.send();
-        this.websocket.connect(gbResponse.url, this.config.token);
+        const gbRequest = buildGatewayBotRequest(this.config);
+        const gbResponse = await this.https.get<IGatewayBotResponse>(this.config.token, gbRequest);
+        this.websocket.connect(gbResponse.url);
     }
 
     /**
