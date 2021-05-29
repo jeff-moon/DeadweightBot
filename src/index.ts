@@ -16,4 +16,5 @@ const client: DiscordClient = new DiscordClient(token);
 
 (async () => {
     await client.connect();
+    await client.getChannels(668414304927613005);
 })();

@@ -1,6 +1,10 @@
 import config from 'config';
+import { channel } from 'diagnostic_channel';
+import EventEmitter from 'events';
 import { buildGatewayBotRequest, IGatewayBotResponse } from './discord/commands/gateway-bot';
-import { HttpsClient, HttpsRequestOptions } from './https-client';
+import { buildChannelsRequest, IChannelsResponse } from './discord/commands/get-channels';
+import { HttpsClient } from './https-client';
+import logger from './logger/logger';
 import { WebSocketClient } from './websocket/websocket-client';
 
 export interface DiscordClientConfig {
@@ -12,7 +16,7 @@ export interface DiscordClientConfig {
 /**
  * Discord Client
  */
-export class DiscordClient {
+export class DiscordClient extends EventEmitter {
 
     private config: DiscordClientConfig;
     
@@ -25,6 +29,7 @@ export class DiscordClient {
      * @param token The discord bot's token
      */
     constructor(token: string) {
+        super();
         this.config = {
             baseUrl: config.get('discord.baseUrl'),
             apiUrl: config.get('discord.apiUrl'),
@@ -41,7 +46,8 @@ export class DiscordClient {
     async connect(): Promise<void> {
         const gbRequest = buildGatewayBotRequest(this.config);
         const gbResponse = await this.https.get<IGatewayBotResponse>(this.config.token, gbRequest);
-        this.websocket.connect(gbResponse.url);
+        await this.websocket.connect(gbResponse.url);
+        logger.info('Websocket connected');
     }
 
     /**
@@ -49,5 +55,16 @@ export class DiscordClient {
      */
     async disconnect(): Promise<void> {
 
+    }
+
+    async getChannels(guildId: number): Promise<void> {
+        if (!this.websocket.connected) {
+            logger.error('Cannot request channels while noto connected to gateway');
+            return;
+        }
+
+        const channelsRequest = buildChannelsRequest(this.config, guildId);
+        const response = await this.https.get<IChannelsResponse>(this.config.token, channelsRequest);
+        console.log(response);
     }
 }

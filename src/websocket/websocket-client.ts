@@ -4,6 +4,7 @@ import { buildHeartbeatRequest } from '../discord/commands/heartbeat';
 import { IHelloResponse } from '../discord/commands/hello';
 import { buildIdentifyRequest } from '../discord/commands/identify';
 import logger from '../logger/logger';
+import { sleep } from '../util/sleep';
 import {Intents} from './intent';
 import {Opcodes} from './opcode';
 
@@ -40,6 +41,11 @@ export class WebSocketClient {
     private heartbeat: NodeJS.Timer | undefined = undefined;
 
     /**
+     * Indicates we're connected
+     */
+    public connected: boolean = false;
+
+    /**
      * Constructor
      * @param config The discord config
      */
@@ -51,16 +57,28 @@ export class WebSocketClient {
      * Connects the websocket
      * @param config The discord configuration
      */
-    public connect(wsPath: string): void {
+    public async connect(wsPath: string): Promise<void> {
 
-        this.ws = new WebSocket(wsPath);
+        return new Promise(async (resolve, reject) => {
+            this.ws = new WebSocket(wsPath);
 
-        this.ws.on('open', () => {
-            console.log("OPENED");
-        });
+            this.ws.on('open', () => {
+                console.log("OPENED");
+            });
 
-        this.ws.on('message', (data: WebSocket.Data) => {
-            this.processData(data);
+            this.ws.on('message', (data: WebSocket.Data) => {
+                this.processData(data);
+            });
+            
+            let loopCount = 0;
+            while(!this.connected) {
+                await sleep(100);
+                if (++loopCount > 100) {
+                    reject('Connect timeout');
+                }
+            }
+
+            resolve();
         });
     }
 
@@ -73,25 +91,7 @@ export class WebSocketClient {
         intents |= Intents.Guilds;
         intents |= Intents.GuildMessage;
         const identify = buildIdentifyRequest(this.config.token, intents, "DeadweightBot");
-
-        /*
-
-        const identityOpts: IWebSocketIdentify = {
-            op: Opcodes.Identify,
-            d: {
-                token: this.token,
-                intents: intents,
-                // TODO dwb-7: dynamic properties
-                properties: {
-                    "$os": "linux",
-                    "$browser": "DeadweightBot",
-                    "$device": "DeadweightBot"
-                }
-            }
-        };
-
-        this.ws.send(JSON.stringify(identityOpts));
-        */
+        this.ws?.send(JSON.stringify(identify));
     }
 
     /**
@@ -107,6 +107,11 @@ export class WebSocketClient {
         }
 
         switch (dataObj.op) {
+            case Opcodes.Dispatch:
+                // TODO - dispatch
+                this.s = (dataObj as any).s;
+                this.connected = true;
+                break;
             case Opcodes.Hello:
                 const interval = (dataObj as IHelloResponse).d.heartbeat_interval;
                 this.startHeartbeat(interval);
